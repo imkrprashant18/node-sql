@@ -1,5 +1,5 @@
 import { pool } from "../db/index.js";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 const userRegister = async (req, res) => {
   try {
@@ -30,7 +30,7 @@ const userRegister = async (req, res) => {
       [username, email, hashedPassword]
     );
 
-    res.status(201).json({ id: result.insertId, username, email });
+    res.status(201).json({ id: result.insertId, username, email, message:"user registered successfully" });
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }
@@ -169,11 +169,11 @@ const deleteTodo = async (req, res) => {
       [id, userId]
     );
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "Todo not found" });
+      return res.status(404).json({ error: "Todo not found : Unauthorized to Delete" });
     }
     res.json({ message: "Todo deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
-export { userRegister, userLogin, getCurrentUser, createTodo, getAllTodos, updateTodo };
+export { userRegister, userLogin, getCurrentUser, createTodo, getAllTodos, updateTodo, deleteTodo };

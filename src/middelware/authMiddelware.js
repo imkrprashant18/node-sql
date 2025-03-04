@@ -10,10 +10,8 @@ const authMiddleware = async (req, res, next) => {
     if (!token) {
       return res.status(401).json({ message: "Unauthorized: Token not found" });
     }
-
     // Verify JWT token
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
-
     // Fetch user from database
     const [rows] = await pool.query(
       "SELECT id, username, email FROM users WHERE id = ? LIMIT 1",
@@ -26,11 +24,8 @@ const authMiddleware = async (req, res, next) => {
 
     // Attach user details (excluding password) to request
     req.user = rows[0]; // { id, username, email }
-
     next(); // Proceed to the next middleware
   } catch (error) {
-    console.error("Auth Middleware Error:", error.message);
-
     const errorMessage =
       error.name === "JsonWebTokenError" ? "Invalid token" :
       error.name === "TokenExpiredError" ? "Token expired" :
