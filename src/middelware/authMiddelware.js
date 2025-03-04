@@ -1,30 +1,42 @@
 import jwt from "jsonwebtoken";
-import { pool } from "../db/index.js";
+import { pool } from "../db/index.js"; // Ensure correct database import
 
 const authMiddleware = async (req, res, next) => {
   try {
-    const token = req.header("Authorization")?.split(" ")[1];
-    console.log(token);
+    // Extract token from cookies or Authorization header
+    const token =
+      req.cookies?.token||
+      req.header("Authorization")?.replace("Bearer ", "");
     if (!token) {
-      return res.status(401).json({ message: "Unauthorized request" });
+      return res.status(401).json({ message: "Unauthorized: Token not found" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Verify JWT token
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
 
-    const [rows] = await pool.query("SELECT * FROM users WHERE id = ?", [
-      decoded.id,
-    ]);
+    // Fetch user from database
+    const [rows] = await pool.query(
+      "SELECT id, username, email FROM users WHERE id = ? LIMIT 1",
+      [decodedToken.id]
+    );
 
     if (rows.length === 0) {
-      return res
-        .status(401)
-        .json({ message: "Invalid Token. User not found." });
+      return res.status(401).json({ message: "Unauthorized: Invalid Access Token" });
     }
 
-    req.user = rows[0]; // Store user data in `req.user`
-    next();
+    // Attach user details (excluding password) to request
+    req.user = rows[0]; // { id, username, email }
+
+    next(); // Proceed to the next middleware
   } catch (error) {
-    return res.status(401).json({ message: "Invalid Token" });
+    console.error("Auth Middleware Error:", error.message);
+
+    const errorMessage =
+      error.name === "JsonWebTokenError" ? "Invalid token" :
+      error.name === "TokenExpiredError" ? "Token expired" :
+      "Authentication failed";
+
+    return res.status(401).json({ message: `Unauthorized: ${errorMessage}` });
   }
 };
 
